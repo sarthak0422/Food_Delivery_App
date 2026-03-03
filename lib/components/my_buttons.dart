@@ -4,10 +4,13 @@ class MyButton extends StatelessWidget {
 
   final Function()? onTap;
   final String text;
+  final Widget? child;
+
   const MyButton({
     super.key,
     required this.onTap,
     required this.text,
+    this.child,
   });
 
   @override
@@ -21,7 +24,7 @@ class MyButton extends StatelessWidget {
         BoxDecoration(color: Theme.of(context).colorScheme.secondary,
         borderRadius: BorderRadius.circular(8)),
         child: Center(
-          child: Text(
+          child: child?? Text(
             text,
             style: TextStyle(
                 fontWeight: FontWeight.bold,

@@ -68,7 +68,7 @@ class _DeliveryProgressPageState extends State<DeliveryProgressPage> {
 
                   // 2️⃣ Navigate to Home and clear previous screens
                   Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
-                },
+                }, child: null,
               ),
             ),
 

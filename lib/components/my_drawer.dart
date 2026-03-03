@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:untitled/components/my_drawer_tile.dart';
 import 'package:untitled/services/auth/auth_gate.dart';
 import 'package:untitled/services/auth/auth_services.dart';
 import 'package:untitled/settings_page.dart';
-
 import '../profile_page.dart';
+
 class MyDrawer extends StatelessWidget {
   const MyDrawer({super.key});
 
@@ -19,13 +20,30 @@ class MyDrawer extends StatelessWidget {
       backgroundColor: Theme.of(context).colorScheme.surface,
       child: Column(
         children: [
-          //app logo
-          Padding(
-            padding: const EdgeInsets.only(top: 100.0),
-            child: Icon(
-                Icons.person_2_outlined,
-              size: 80,
-              color: Theme.of(context).colorScheme.inversePrimary,
+          // Drawer Header with User Info
+          DrawerHeader(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.person_2_outlined,
+                  size: 48,
+                  color: Theme.of(context).colorScheme.inversePrimary,
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  FirebaseAuth.instance.currentUser?.email ??
+                      FirebaseAuth.instance.currentUser?.phoneNumber ??
+                      "Guest User",
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.inversePrimary,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
             ),
           ),
 
@@ -36,7 +54,7 @@ class MyDrawer extends StatelessWidget {
             ),
           ),
 
-          //home list
+          // Home list tile
           MyDrawerTile(
               onTap: () => Navigator.pop(context),
               text: "H O M E",
@@ -52,33 +70,29 @@ class MyDrawer extends StatelessWidget {
             icon: Icons.person_outline_rounded,
           ),
 
-          //settings
           MyDrawerTile(
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsPage(),
-                 ),
-                );
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsPage()));
               },
               text: "S E T T I N G S",
               icon: Icons.settings
           ),
 
           const Spacer(),
-          //logout
+
+          // Logout
           MyDrawerTile(
               onTap: ()  {
                 logout();
                 Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const AuthGate(),
-                ),
-                );
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const AuthGate()));
               },
               text: "L O G O U T",
               icon: Icons.logout_rounded
           ),
-          const SizedBox(height: 25),
 
+          const SizedBox(height: 25),
         ],
       ),
     );

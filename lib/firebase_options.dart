@@ -41,49 +41,49 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyCGzOY7OFeq3_SzsVqqamrjL8go70NNjq0',
-    appId: '1:151454045801:web:5f2bcd96dd85b47d95f4f8',
+    apiKey: 'AIzaSyD1wf2z4bB0P_QVBguxOY7DWz-kRNRJxZk',
+    appId: '1:151454045801:web:2fa28569fd80bdd095f4f8',
     messagingSenderId: '151454045801',
     projectId: 'fooddeliveryproject-38123',
     authDomain: 'fooddeliveryproject-38123.firebaseapp.com',
-    storageBucket: 'fooddeliveryproject-38123.appspot.com',
-    measurementId: 'G-LYE7ZXXQFC',
+    storageBucket: 'fooddeliveryproject-38123.firebasestorage.app',
+    measurementId: 'G-TV8RKH740D',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyBAe8Rvpl2swfs94mPwzplkZOS32GnbKAc',
-    appId: '1:151454045801:android:e14c048d040845ed95f4f8',
+    appId: '1:151454045801:android:df015b7f82d41a7795f4f8',
     messagingSenderId: '151454045801',
     projectId: 'fooddeliveryproject-38123',
-    storageBucket: 'fooddeliveryproject-38123.appspot.com',
+    storageBucket: 'fooddeliveryproject-38123.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyAzRqex9BC67IePs1qWkJrb8n2_aZ8VASk',
-    appId: '1:151454045801:ios:ea06b5be4ab4489495f4f8',
+    appId: '1:151454045801:ios:147de97e9b66d4e295f4f8',
     messagingSenderId: '151454045801',
     projectId: 'fooddeliveryproject-38123',
-    storageBucket: 'fooddeliveryproject-38123.appspot.com',
-    iosBundleId: 'com.example.test001',
+    storageBucket: 'fooddeliveryproject-38123.firebasestorage.app',
+    iosBundleId: 'com.example.untitled',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyAzRqex9BC67IePs1qWkJrb8n2_aZ8VASk',
-    appId: '1:151454045801:ios:ea06b5be4ab4489495f4f8',
+    appId: '1:151454045801:ios:147de97e9b66d4e295f4f8',
     messagingSenderId: '151454045801',
     projectId: 'fooddeliveryproject-38123',
-    storageBucket: 'fooddeliveryproject-38123.appspot.com',
-    iosBundleId: 'com.example.test001',
+    storageBucket: 'fooddeliveryproject-38123.firebasestorage.app',
+    iosBundleId: 'com.example.untitled',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyCGzOY7OFeq3_SzsVqqamrjL8go70NNjq0',
-    appId: '1:151454045801:web:d1e52966bcb8137895f4f8',
+    apiKey: 'AIzaSyD1wf2z4bB0P_QVBguxOY7DWz-kRNRJxZk',
+    appId: '1:151454045801:web:2fa28569fd80bdd095f4f8',
     messagingSenderId: '151454045801',
     projectId: 'fooddeliveryproject-38123',
     authDomain: 'fooddeliveryproject-38123.firebaseapp.com',
-    storageBucket: 'fooddeliveryproject-38123.appspot.com',
-    measurementId: 'G-GQM197KEM2',
+    storageBucket: 'fooddeliveryproject-38123.firebasestorage.app',
+    measurementId: 'G-TV8RKH740D',
   );
 
 }

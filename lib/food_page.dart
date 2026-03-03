@@ -196,7 +196,7 @@ class _FoodPageState extends State<FoodPage> {
                   padding: const EdgeInsets.symmetric(horizontal: 25.0),
                   child: MyButton(
                     onTap: addToCart,
-                    text: "Add To Cart",
+                    text: "Add To Cart", child: null,
                   ),
                 ),
                 const SizedBox(height: 25),

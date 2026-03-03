@@ -111,6 +111,7 @@
 
 
 //wihout database connected
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:untitled/models/restaurant.dart';
@@ -123,43 +124,51 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  String name = "John Doe";
-  String email = "johndoe@example.com";
-  String address = "123 Foodie Lane, Mumbai";
+
+  // Get the real user from Firebase
+  final User? currentUser = FirebaseAuth.instance.currentUser;
 
   late TextEditingController _nameController;
   late TextEditingController _addressController;
+  late TextEditingController _phoneController;
+  late TextEditingController _emailController;
 
   bool _isEditing = false;
 
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: name);
-    _addressController = TextEditingController(text: address);
+    // Initialize controllers with real Firebase data
+    _nameController = TextEditingController(text: currentUser?.displayName ?? "New User");
+    _emailController = TextEditingController(text: currentUser?.email ?? "No Email Linked");
+    _phoneController = TextEditingController(text: currentUser?.phoneNumber ?? "No Phone Linked");
+    _addressController = TextEditingController(text: "Update your address here...");
   }
 
   @override
   void dispose() {
     _nameController.dispose();
     _addressController.dispose();
+    _phoneController.dispose();
+    _emailController.dispose();
     super.dispose();
   }
 
-  void _saveProfile() {
-    setState(() {
-      name = _nameController.text;
-      address = _addressController.text;
-      _isEditing = false;
-    });
+  void _saveProfile() async {
+    try {
+      // Update the Display Name in Firebase Profile
+      await currentUser?.updateDisplayName(_nameController.text);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text("Profile Updated locally!"),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: Theme.of(context).colorScheme.primary,
-      ),
-    );
+      setState(() => _isEditing = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Profile Updated in Firebase!")),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error updating profile: $e")),
+      );
+    }
   }
 
   // ---------------- RECEIPT DIALOG ----------------
@@ -272,8 +281,15 @@ class _ProfilePageState extends State<ProfilePage> {
 
             _buildProfileField(
               label: "Email Address",
-              controller: TextEditingController(text: email),
+              controller: _emailController,
               icon: Icons.email_outlined,
+              enabled: false,
+            ),
+
+            _buildProfileField(
+              label: "Phone Number",
+              controller: _phoneController,
+              icon: Icons.phone_outlined,
               enabled: false,
             ),
 
