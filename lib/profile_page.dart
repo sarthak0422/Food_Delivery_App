@@ -110,11 +110,16 @@
 // }
 
 
-//wihout database connected
+//without database connected
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:untitled/models/restaurant.dart';
+import 'package:untitled/services/database/database_service.dart';
+
+import 'components/my_skeleton.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -124,235 +129,286 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-
-  // Get the real user from Firebase
+  final DatabaseService _db = DatabaseService();
   final User? currentUser = FirebaseAuth.instance.currentUser;
 
   late TextEditingController _nameController;
   late TextEditingController _addressController;
-  late TextEditingController _phoneController;
   late TextEditingController _emailController;
+  late TextEditingController _phoneController;
 
   bool _isEditing = false;
 
   @override
   void initState() {
     super.initState();
-    // Initialize controllers with real Firebase data
-    _nameController = TextEditingController(text: currentUser?.displayName ?? "New User");
-    _emailController = TextEditingController(text: currentUser?.email ?? "No Email Linked");
-    _phoneController = TextEditingController(text: currentUser?.phoneNumber ?? "No Phone Linked");
-    _addressController = TextEditingController(text: "Update your address here...");
+    _nameController =
+        TextEditingController(text: currentUser?.displayName ?? "");
+    _emailController =
+        TextEditingController(text: currentUser?.email ?? "");
+    _phoneController =
+        TextEditingController(text: currentUser?.phoneNumber ?? "");
+    _addressController = TextEditingController();
   }
 
   @override
   void dispose() {
     _nameController.dispose();
     _addressController.dispose();
-    _phoneController.dispose();
     _emailController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
-  void _saveProfile() async {
+  // ✅ Saving Overlay
+  void _showSavingOverlay() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(20),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(width: 20),
+                Text("Saving..."),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ✅ Save Profile (Production Ready)
+  Future<void> _saveProfile() async {
+    if (_nameController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Name cannot be empty!")),
+      );
+      return;
+    }
+
+    _showSavingOverlay();
+
     try {
-      // Update the Display Name in Firebase Profile
-      await currentUser?.updateDisplayName(_nameController.text);
+      await currentUser?.updateDisplayName(_nameController.text.trim());
+
+      await _db.updateProfile(
+        name: _nameController.text.trim(),
+        email: _emailController.text.trim(),
+        phone: _phoneController.text.trim(),
+        address: _addressController.text.trim(),
+      );
+
+      if (!mounted) return;
+
+      Navigator.pop(context); // remove overlay
 
       setState(() => _isEditing = false);
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Profile Updated in Firebase!")),
+        const SnackBar(content: Text("Profile Updated Successfully!")),
       );
     } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context);
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Error updating profile: $e")),
       );
     }
   }
 
-  // ---------------- RECEIPT DIALOG ----------------
+  // ✅ Skeleton Loader
+  Widget _buildProfileSkeleton() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(25),
+      child: Column(
+        children: [
+          const SizedBox(height: 20),
+          // Avatar Skeleton
+          const MySkeleton(height: 120, width: 120, borderRadius: 60),
+
+          const SizedBox(height: 40),
+
+          // Field Skeletons
+          ...List.generate(4, (index) => Padding(
+            padding: const EdgeInsets.only(bottom: 20),
+            child: MySkeleton(
+              height: 70,
+              width: MediaQuery.of(context).size.width,
+            ),
+          )),
+        ],
+      ),
+    );
+  }
 
   void _showReceiptDialog(BuildContext context, String receipt) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        title: const Text(
-          "Order Details",
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        content: SingleChildScrollView(
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              // Using a lighter background color for the "paper" effect
-              color: Theme.of(context).colorScheme.secondary.withOpacity(0.5),
-              border: Border.all(color: Theme.of(context).colorScheme.tertiary),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              receipt,
-              style: TextStyle(
-                // REMOVED 'Courier' to use the app's default font
-                fontSize: 15,
-                height: 1.5, // Better line spacing for readability
-                color: Theme.of(context).colorScheme.inversePrimary,
-              ),
-            ),
-          ),
-        ),
+        title: const Text("Order Details"),
+        content: SingleChildScrollView(child: Text(receipt)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(
-              "Close",
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            child: const Text("Close"),
           )
         ],
       ),
     );
   }
 
-  // ---------------- BUILD ----------------
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
         title: const Text("P R O F I L E"),
         actions: [
           IconButton(
-            onPressed:
-            _isEditing ? _saveProfile : () => setState(() => _isEditing = true),
             icon: Icon(
               _isEditing
                   ? Icons.check_circle_rounded
                   : Icons.edit_note_rounded,
             ),
-            color: _isEditing
-                ? Colors.green
-                : Theme.of(context).colorScheme.primary,
+            color: _isEditing ? Colors.green : null,
+            onPressed: () {
+              if (_isEditing) {
+                _saveProfile();
+              } else {
+                setState(() => _isEditing = true);
+              }
+            },
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 25.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 20),
 
-            // Profile Picture
-            Center(
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Theme.of(context).colorScheme.primary,
-                    width: 2,
+      // 🔥 Firestore Stream
+      body: StreamBuilder<DocumentSnapshot>(
+        stream: _db.userProfileStream,
+        builder: (context, snapshot) {
+
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return _buildProfileSkeleton();
+          }
+
+          if (snapshot.hasData && snapshot.data!.exists) {
+            final userData = snapshot.data!.data() as Map<String, dynamic>;
+
+            if (!_isEditing) {
+              _nameController.text = userData['name'] ?? currentUser?.displayName ?? "";
+              _addressController.text = userData['address'] ?? "No address set";
+              // Also update phone/email if they are empty in the controllers
+              _emailController.text = userData['email'] ?? currentUser?.email ?? "";
+              _phoneController.text = userData['phone'] ?? currentUser?.phoneNumber ?? "";
+            }
+          } else if (snapshot.hasData && !snapshot.data!.exists) {
+            // If document doesn't exist, show Auth data as fallback
+            if (!_isEditing) {
+              _nameController.text = currentUser?.displayName ?? "";
+              _emailController.text = currentUser?.email ?? "";
+              _phoneController.text = currentUser?.phoneNumber ?? "";
+            }
+          }
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 25),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+
+                const SizedBox(height: 20),
+
+                Center(
+                  child: CircleAvatar(
+                    radius: 60,
+                    backgroundImage: const NetworkImage(
+                      "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png",
+                    ),
                   ),
                 ),
-                child: CircleAvatar(
-                  radius: 60,
-                  backgroundColor:
-                  Theme.of(context).colorScheme.secondary,
-                  backgroundImage: const NetworkImage(
-                    "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png",
-                  ),
+
+                const SizedBox(height: 40),
+
+                _buildProfileField(
+                  label: "Full Name",
+                  controller: _nameController,
+                  icon: Icons.person_outline,
+                  enabled: _isEditing,
                 ),
-              ),
-            ),
 
-            const SizedBox(height: 40),
+                _buildProfileField(
+                  label: "Email",
+                  controller: _emailController,
+                  icon: Icons.email_outlined,
+                  enabled: false,
+                ),
 
-            _buildProfileField(
-              label: "Full Name",
-              controller: _nameController,
-              icon: Icons.person_outline,
-              enabled: _isEditing,
-            ),
+                _buildProfileField(
+                  label: "Phone",
+                  controller: _phoneController,
+                  icon: Icons.phone_outlined,
+                  enabled: false,
+                ),
 
-            _buildProfileField(
-              label: "Email Address",
-              controller: _emailController,
-              icon: Icons.email_outlined,
-              enabled: false,
-            ),
+                _buildProfileField(
+                  label: "Address",
+                  controller: _addressController,
+                  icon: Icons.location_on_outlined,
+                  enabled: _isEditing,
+                  maxLines: 2,
+                ),
 
-            _buildProfileField(
-              label: "Phone Number",
-              controller: _phoneController,
-              icon: Icons.phone_outlined,
-              enabled: false,
-            ),
+                const SizedBox(height: 30),
 
-            _buildProfileField(
-              label: "Delivery Address",
-              controller: _addressController,
-              icon: Icons.location_on_outlined,
-              enabled: _isEditing,
-              maxLines: 2,
-            ),
-
-            const SizedBox(height: 30),
-
-            // ---------------- ORDER HISTORY SECTION ----------------
-
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 0, vertical: 10),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
+                const Text(
                   "Order History",
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
-              ),
-            ),
 
-            Consumer<Restaurant>(
-              builder: (context, restaurant, child) {
-                if (restaurant.orderHistory.isEmpty) {
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 10),
-                    child: Text("No past orders yet."),
-                  );
-                }
+                const SizedBox(height: 10),
 
-                return ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: restaurant.orderHistory.length,
-                  itemBuilder: (context, index) {
-                    return ListTile(
-                      leading: const Icon(Icons.history_edu),
-                      title: Text(
-                          "Order #${restaurant.orderHistory.length - index}"),
-                      subtitle: const Text("Tap to view details"),
-                      onTap: () => _showReceiptDialog(
-                        context,
-                        restaurant.orderHistory[index],
-                      ),
+                Consumer<Restaurant>(
+                  builder: (context, restaurant, child) {
+                    if (restaurant.orderHistory.isEmpty) {
+                      return const Text("No past orders yet.");
+                    }
+
+                    return ListView.builder(
+                      shrinkWrap: true,
+                      physics:
+                      const NeverScrollableScrollPhysics(),
+                      itemCount: restaurant.orderHistory.length,
+                      itemBuilder: (context, index) {
+                        return ListTile(
+                          leading: const Icon(Icons.history),
+                          title: Text(
+                              "Order #${restaurant.orderHistory.length - index}"),
+                          subtitle:
+                          const Text("Tap to view details"),
+                          onTap: () => _showReceiptDialog(
+                            context,
+                            restaurant.orderHistory[index],
+                          ),
+                        );
+                      },
                     );
                   },
-                );
-              },
-            ),
+                ),
 
-            const SizedBox(height: 40),
-          ],
-        ),
+                const SizedBox(height: 40),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
-
-  // ---------------- REUSABLE FIELD ----------------
 
   Widget _buildProfileField({
     required String label,
@@ -369,29 +425,32 @@ class _ProfilePageState extends State<ProfilePage> {
         borderRadius: BorderRadius.circular(16),
         border: enabled
             ? Border.all(
-            color: Theme.of(context)
-                .colorScheme
-                .primary
-                .withOpacity(0.5))
+          color: Theme.of(context)
+              .colorScheme
+              .primary
+              .withOpacity(0.5),
+        )
             : Border.all(color: Colors.transparent),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: Theme.of(context).colorScheme.primary),
+          Icon(icon,
+              color: Theme.of(context).colorScheme.primary),
           const SizedBox(width: 15),
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment:
+              CrossAxisAlignment.start,
               children: [
                 Text(
                   label,
                   style: TextStyle(
+                    fontSize: 12,
                     color: Theme.of(context)
                         .colorScheme
                         .inversePrimary
                         .withOpacity(0.6),
-                    fontSize: 12,
                   ),
                 ),
                 TextField(
@@ -399,11 +458,14 @@ class _ProfilePageState extends State<ProfilePage> {
                   enabled: enabled,
                   maxLines: maxLines,
                   style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 16),
-                  decoration: const InputDecoration(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16),
+                  decoration:
+                  const InputDecoration(
                     border: InputBorder.none,
                     isDense: true,
-                    contentPadding: EdgeInsets.only(top: 5),
+                    contentPadding:
+                    EdgeInsets.only(top: 5),
                   ),
                 ),
               ],

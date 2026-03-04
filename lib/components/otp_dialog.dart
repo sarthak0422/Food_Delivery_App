@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:untitled/services/auth/auth_services.dart';
 import 'package:untitled/home_page.dart';
 import 'dart:async';
+import '../services/database/database_service.dart';
 
 class OtpDialog extends StatefulWidget {
   final String name;
@@ -25,6 +26,7 @@ class OtpDialog extends StatefulWidget {
 class _OtpDialogState extends State<OtpDialog> {
   final List<TextEditingController> _controllers =
   List.generate(6, (_) => TextEditingController());
+
   bool isVerifying = false;
 
   Timer? _timer;
@@ -34,22 +36,23 @@ class _OtpDialogState extends State<OtpDialog> {
   @override
   void initState() {
     super.initState();
-    startTimer();
+    _startTimer();
   }
 
-  void startTimer() {
-    setState(() {
-      _start = 30;
-      canResend = false;
-    });
+  void _startTimer() {
+    _start = 30;
+    canResend = false;
+
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_start == 0) {
-        setState(() {
-          canResend = true;
-          timer.cancel();
-        });
+        timer.cancel();
+        if (mounted) {
+          setState(() => canResend = true);
+        }
       } else {
-        setState(() => _start--);
+        if (mounted) {
+          setState(() => _start--);
+        }
       }
     });
   }
@@ -57,98 +60,139 @@ class _OtpDialogState extends State<OtpDialog> {
   @override
   void dispose() {
     _timer?.cancel();
-    for (var controller in _controllers) {
-      controller.dispose();
+    for (var c in _controllers) {
+      c.dispose();
     }
     super.dispose();
   }
 
-  // ✅ Verify OTP
-  void _verifyOtp() async {
-    setState(() => isVerifying = true);
-    String otp = _controllers.map((e) => e.text).join();
-    final authService = AuthService();
-    if (otp.length < 6) {
+  // ✅ PRODUCTION READY VERIFY METHOD
+  Future<void> _verifyOtp() async {
+    if (isVerifying) return; // prevent double tap
+
+    String otp = _controllers.map((e) => e.text.trim()).join();
+
+    if (otp.length != 6) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please enter all 6 digits")),
       );
       return;
     }
 
+    setState(() => isVerifying = true);
+
+    final authService = AuthService();
+    final dbService = DatabaseService();
+
     try {
-      // 1. Sign in with Phone first
+      // 1️⃣ Verify Phone OTP
       UserCredential userCredential = await authService.loginInWithOTP(otp);
+      User? user = userCredential.user;
+      if (user == null) throw Exception("User not found");
 
-      // 2. Set the Display Name (Full Name)
-      await userCredential.user?.updateDisplayName(widget.name);
+      // Give Firebase Auth a millisecond to "settle" its state locally
+      await Future.delayed(const Duration(milliseconds: 500));
 
-      // 3. Link Email/Password
+      // 2️⃣ Update Display Name & Email (Auth side)
+      await user.updateDisplayName(widget.name.trim());
 
+      await user.reload();
+
+      // 3️⃣ Link Email & Password (Single Account System)
       try {
-        // This creates a single account with both Phone and Email login
-        AuthCredential emailCredential = EmailAuthProvider.credential(
+        AuthCredential emailCredential =
+        EmailAuthProvider.credential(
           email: widget.email.trim(),
           password: widget.password.trim(),
         );
 
-        await userCredential.user?.linkWithCredential(emailCredential);
-        try {
-          // This ensures the email is explicitly set on the account profile
-          await userCredential.user?.updateEmail(widget.email.trim());
-          await userCredential.user?.reload();
-        } catch (e) {
-          print("Email profile update note: $e");
-        }
-      }catch (linkError) {
-        // If the email is already in use, we just continue
-        // as the phone is already verified.
-        print("Link error or email already exists: $linkError");
+        await user.linkWithCredential(emailCredential);
+      } catch (e) {
+        // Email already linked / exists → continue safely
+        debugPrint("Email link note: $e");
       }
 
+      // 4️⃣ Ensure Email Updated
+      try {
+        await user.updateEmail(widget.email.trim());
+        await user.reload();
+      } catch (e) {
+        debugPrint("Email update note: $e");
+      }
+
+      // 5️⃣ Save to Firestore
+      // Pass variables explicitly if needed, but the getter in dbService should work now
+      await dbService.updateProfile(
+        name: widget.name.trim(),
+        email: widget.email.trim(),
+        phone: widget.phoneNumber.trim(),
+      );
+
+      // 6️⃣ Save to Local Storage (Instant Login)
+      await dbService.saveUserLocally(
+        widget.name.trim(),
+        user.uid,
+      );
+
+      if (!mounted) return;
+
+      // Close dialog FIRST
+      Navigator.of(context, rootNavigator: true).pop();
+
+      // Navigate cleanly (prevents home showing early)
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const HomePage()),
+            (route) => false,
+      );
+    } catch (e) {
       if (mounted) {
-        Navigator.pop(context);
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const HomePage()),
+        setState(() => isVerifying = false);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Verification Failed: $e")),
         );
       }
-    } catch (e) {
-      setState(() => isVerifying = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Invalid OTP: $e")));
     }
   }
 
-  // ✅ Resend code
-  void _resendCode() async {
+  // ✅ Resend OTP
+  Future<void> _resendCode() async {
     final authService = AuthService();
+
     try {
-      // Trigger the SMS again using the passed phone number
       await authService.verifyPhone(widget.phoneNumber, (verId) {
-        startTimer(); // Reset the 30s countdown
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text("New OTP Sent!")));
+        _startTimer();
+
         for (var controller in _controllers) {
           controller.clear();
         }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("New OTP Sent!")),
+        );
       });
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.toString())));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16)),
       title: const Text(
         "Verify OTP",
         textAlign: TextAlign.center,
       ),
       content: isVerifying
-          ? SizedBox(
-        height: 100,
-        child: Center(child: CircularProgressIndicator()),
+          ? const SizedBox(
+        height: 120,
+        child: Center(
+          child: CircularProgressIndicator(),
+        ),
       )
           : Column(
         mainAxisSize: MainAxisSize.min,
@@ -185,17 +229,20 @@ class _OtpDialogState extends State<OtpDialog> {
       actionsAlignment: MainAxisAlignment.center,
       actions: [
         TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel")),
+          onPressed: isVerifying
+              ? null
+              : () => Navigator.pop(context),
+          child: const Text("Cancel"),
+        ),
         ElevatedButton(
-          onPressed: isVerifying ? null : _verifyOtp,
+          onPressed:
+          isVerifying ? null : _verifyOtp,
           child: const Text("Verify"),
         ),
       ],
     );
   }
 
-  // ✅ OTP box widget
   Widget _otpBox(int index) {
     return SizedBox(
       width: 45,
@@ -204,7 +251,10 @@ class _OtpDialogState extends State<OtpDialog> {
         textAlign: TextAlign.center,
         keyboardType: TextInputType.number,
         maxLength: 1,
-        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        style: const TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
         decoration: InputDecoration(
           counterText: "",
           border: OutlineInputBorder(
@@ -218,7 +268,7 @@ class _OtpDialogState extends State<OtpDialog> {
           if (value.isEmpty && index > 0) {
             FocusScope.of(context).previousFocus();
           }
-          // Auto-submit when last digit entered
+
           if (index == 5 && value.isNotEmpty) {
             _verifyOtp();
           }

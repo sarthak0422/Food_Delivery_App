@@ -1,0 +1,117 @@
+Here is your **point-wise structured prompt** (clean, clear, production-focused):
+
+---
+
+### 🔹 Firebase & Database Setup
+
+1. Confirm whether **Cloud Firestore** is already configured in Firebase project.
+2. If not configured:
+
+   * Enable **Cloud Firestore** from Firebase Console.
+   * Start in production mode (or test mode temporarily).
+   * Set up proper security rules.
+3. Verify:
+
+   * Project is connected to app.
+   * `google-services.json` / `GoogleService-Info.plist` is properly added.
+   * Firestore read/write permissions are working.
+4. Clarify: If Firestore is not auto-created, complete manual setup today without fail.
+
+---
+
+### 🔹 Local Storage Setup
+
+5. Implement local storage (if not already done).
+
+   * Use appropriate local storage solution (SharedPreferences / Hive / Room / etc.).
+   * Ensure user session is saved locally after login.
+   * Persist basic user data (name, UID, auth state).
+6. Confirm app does not require re-login unnecessarily.
+
+---
+
+### 🔹 OTP Verification Flow Fix
+
+7. Fix OTP verification dialog issue:
+
+   * After successful OTP verification, dialog must close automatically.
+   * Navigate properly to Home Screen only after verification success.
+8. Prevent Home Screen from appearing before OTP verification completes.
+9. Add proper loading state during OTP verification.
+10. Handle failure cases (invalid OTP, timeout, network error).
+
+---
+
+### 🔹 UI / UX Improvements (Production-Level Refinement)
+
+#### 1️⃣ Skeleton Loading
+
+11. Replace generic spinner with:
+
+* Light grey placeholder containers.
+* Shimmer/skeleton effect while data loads.
+* Match layout structure of actual content.
+
+#### 2️⃣ Input Validation
+
+12. Prevent user from saving empty name.
+13. Show proper validation message:
+
+* “Name cannot be empty.”
+
+14. Disable checkmark/save button until valid input is entered.
+
+#### 3️⃣ Sync Indicator
+
+15. When user taps checkmark:
+
+* Show small overlay indicator: “Saving…”
+* Disable multiple taps.
+* Hide indicator once save completes.
+
+16. Show success feedback (optional subtle check animation).
+
+---
+
+### 🔹 Production-Level Enhancements
+
+17. Improve overall UI spacing, padding, and alignment.
+18. Use consistent typography and color scheme.
+19. Add smooth transitions between screens.
+20. Ensure no UI flickering during navigation.
+21. Handle all edge cases:
+
+* No internet
+* Firestore failure
+* Slow network
+
+22. Add proper error snackbars/toasts.
+23. Ensure clean state management (no duplicate API calls).
+24. Test full flow end-to-end:
+
+* Sign up → OTP → Save Name → Home → Data Sync
+
+25. Deliver all fixes today without errors.
+
+---
+
+If you want, I can now convert this into:
+
+* ✅ Developer task checklist
+* ✅ Jira ticket format
+* ✅ AI code-generation prompt
+* ✅ Execution roadmap (step-by-step implementation order)
+
+Tell me which format you need.
+
+
+	[(Will do afterwards)	
+	Production-Level Enhancements (The Final Polish)
+Internet Check: Use the connectivity_plus package. If the user hits "Verify" without internet, show a "No Internet Connection" Snackbar immediately.
+
+Flicker-Free Navigation: Use Navigator.pushReplacement consistently so the "Back" button doesn't take verified users back to the Login screen.
+
+Theme Consistency: Use Theme.of(context).colorScheme.primary for all buttons so that when you change your app's main color, the whole app updates instantly.]
+
+
+bug in drawer new users data is not showing and q@gmail.com is showing and in profile while editing name and address the skleton oading is showing and cant edit it and in delivery tracking page the estimate time is static and back to home button is not working it resets the recipt 

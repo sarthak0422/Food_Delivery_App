@@ -12,6 +12,8 @@ import 'package:untitled/food_page.dart';
 import 'package:untitled/models/food.dart';
 import 'package:untitled/models/restaurant.dart';
 
+import 'components/my_skeleton.dart';
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -79,6 +81,36 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     }).toList();
   }
 
+  Widget _buildFoodListSkeleton() {
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      itemCount: 5,
+      itemBuilder: (context, index) => Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Row(
+          children: [
+            // Food Image Skeleton
+            const MySkeleton(height: 100, width: 100, borderRadius: 12),
+            const SizedBox(width: 15),
+            // Text Skeletons
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const MySkeleton(height: 20, width: 150),
+                  const SizedBox(height: 10),
+                  const MySkeleton(height: 15, width: 100),
+                  const SizedBox(height: 10),
+                  const MySkeleton(height: 15, width: 50),
+                ],
+              ),
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -100,12 +132,12 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 ),
 
                 // Location & Description
-                const MyCurrentLocation(),
-                const MyDescriptionBox(),
+                // const MyCurrentLocation(),
+                // const MyDescriptionBox(),
 
                 // Placeholder for Map on Home Page
                 SizedBox(
-                  height: 200,
+                  height:  MediaQuery.of(context).size.height * 0.30, // 30% of screen
                   child: GoogleMap(
                     initialCameraPosition: CameraPosition(target: _currentPos, zoom: 14),
                     onMapCreated: (controller) => _mapController = controller,
@@ -126,13 +158,26 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           ),
         ],
         body: Consumer<Restaurant>(
-          builder: (context, restaurant, child) => Container(
-            color: Theme.of(context).colorScheme.surface,
-            child: TabBarView(
-              controller: _tabController,
-              children: getFoodInThisCategory(restaurant.menu),
-            ),
-          ),
+          builder: (context, restaurant, child) {
+            // If menu is empty → show skeleton
+            if (restaurant.menu.isEmpty) {
+              return TabBarView(
+                controller: _tabController,
+                children: FoodCategory.values
+                    .map((_) => _buildFoodListSkeleton())
+                    .toList(),
+              );
+            }
+
+            // Otherwise show real data
+            return Container(
+              color: Theme.of(context).colorScheme.surface,
+              child: TabBarView(
+                controller: _tabController,
+                children: getFoodInThisCategory(restaurant.menu),
+              ),
+            );
+          },
         ),
       ),
     );

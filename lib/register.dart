@@ -171,7 +171,8 @@ class _RegisterState extends State<Register> {
                   MyTextField(
                     controller: phoneController,
                     obscureText: false,
-                    hintText: "+91- ..........",
+                    hintText: "+919876543210",
+                    keyboardType: TextInputType.phone,
                   ),
                   const SizedBox(height: 10),
                   MyTextField(

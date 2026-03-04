@@ -5,12 +5,14 @@ class MyTextField extends StatefulWidget {
   final TextEditingController controller;
   final String hintText;
   final bool obscureText;
+  final TextInputType keyboardType;
 
   const MyTextField({
     super.key,
     required this.controller,
     required this.obscureText,
     required this.hintText,
+    this.keyboardType = TextInputType.text,
   });
 
   @override
@@ -25,6 +27,7 @@ class _MyTextFieldState extends State<MyTextField> {
       child: TextField(
         controller: widget.controller,
         obscureText: widget.obscureText,
+        keyboardType: widget.keyboardType,
         decoration: InputDecoration(
           enabledBorder: OutlineInputBorder(
             borderSide: BorderSide(
